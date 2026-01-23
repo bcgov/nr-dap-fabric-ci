@@ -1,5 +1,5 @@
 terraform {
-    backend "remote" {
+  backend "remote" {
     organization = "bcgov-tfc"
 
     workspaces {
