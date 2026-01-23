@@ -185,7 +185,7 @@ jobs:
         run: |
           echo "Generating Terraform documentation..."
           set -xe
-          find . -type f -name "*.tf" -not -path "*/.terraform/*" -exec dirname {} \; | sort -u | while read dir; do
+          find build/modules/azure -type f -name "*.tf" -not -path "*/.terraform/*" -exec dirname {} \; | sort -u | while read dir; do
             if [ -f "$dir/main.tf" ] || [ -f "$dir/versions.tf" ]; then
               echo "Processing $dir..."
               terraform-docs markdown table --output-file README.md --output-mode inject "$dir"
@@ -227,7 +227,7 @@ jobs:
               issue_number: context.issue.number,
               owner: context.repo.owner,
               repo: context.repo.repo,
-              body: '📝 Terraform documentation has been automatically updated.'
+              body: 'Terraform documentation has been automatically updated.'
             })
       
       - name: Quality Checks Summary
