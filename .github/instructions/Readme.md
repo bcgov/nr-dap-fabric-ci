@@ -124,7 +124,6 @@ This manual process ensures environment-specific values are correctly applied at
 **Rationale**: Production requires maximum protection. Two reviewers catch issues one might miss. Full history preservation supports audit requirements.
 
 ## Bypass Actors
-
 All rulesets allow **Repository Admins** to bypass rules when necessary for:
 
 - Emergency hotfixes

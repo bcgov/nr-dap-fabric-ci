@@ -19,6 +19,7 @@ This is the single source of truth for our Microsoft Fabric infrastructure:
 
 ### Terraform
 
+
 Terraform is our infrastructure automation tool. It reads our configuration files, compares them to what exists in Azure, and makes the necessary changes to bring infrastructure into the desired state. Think of it as declarative infrastructure - we describe what we want, and Terraform figures out how to make it happen.
 
 ### GitHub
