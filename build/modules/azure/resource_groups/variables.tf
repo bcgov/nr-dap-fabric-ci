@@ -3,19 +3,19 @@
 variable "Instance_Number" {
   type        = string
   description = "Project name"
-  default = "00"
+  default     = "00"
 }
 
 variable "project" {
   type        = string
   description = "Project name"
-  default = "dap"
+  default     = "dap"
 }
 
 variable "env" {
   type        = string
   description = "Environment name"
-  default = "dev"
+  default     = "dev"
 }
 
 variable "prefix" {
@@ -33,7 +33,7 @@ variable "suffix" {
 variable "location" {
   type        = string
   description = "Azure location"
-  default = "cancadacentral"
+  default     = "cancadacentral"
 }
 
 variable "custom_rg_name" {
@@ -47,16 +47,16 @@ variable "tags" {
   description = "Tags to apply to the Azure Resource Group"
   type        = map(string)
   default = {
-    "ministry_name_prefix"                          = "citz"
-    "program_area"                                  = "permitting"
-    "client_code"                                   = ""
-    "responsibility_centre"                         = ""
-    "service_line"                                  = ""
-    "project_number"                                = ""
-    "expense_authority"                             = ""
-    "deployment_automation"                         = "Terraform"
-    "deployment_automation_version"                 = "v0.1"
-    "application_environment"                       = "dev"
-    "information_security_classification"           = "protected_e"
+    "ministry_name_prefix"                = "citz"
+    "program_area"                        = "permitting"
+    "client_code"                         = ""
+    "responsibility_centre"               = ""
+    "service_line"                        = ""
+    "project_number"                      = ""
+    "expense_authority"                   = ""
+    "deployment_automation"               = "Terraform"
+    "deployment_automation_version"       = "v0.1"
+    "application_environment"             = "dev"
+    "information_security_classification" = "protected_e"
   }
 }
