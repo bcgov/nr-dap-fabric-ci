@@ -1,134 +1,431 @@
-# Fabric Infrastructure as Code
-![intro](<documentation/Terraform Submodules Fabric.drawio (1).svg>)
-## Why This Exists
+# terraform-docs
 
-Managing Microsoft Fabric infrastructure manually through the Azure portal doesn't scale. As our analytics platform grows, we need a way to provision and manage dozens of workspaces, capacities, and supporting resources consistently across environments. Manual processes lead to configuration drift, inconsistent naming, missing tags, and deployment errors that slow down teams.
+[![Build Status](https://github.com/terraform-docs/terraform-docs/workflows/ci/badge.svg)](https://github.com/terraform-docs/terraform-docs/actions) [![GoDoc](https://pkg.go.dev/badge/github.com/terraform-docs/terraform-docs)](https://pkg.go.dev/github.com/terraform-docs/terraform-docs) [![Go Report Card](https://goreportcard.com/badge/github.com/terraform-docs/terraform-docs)](https://goreportcard.com/report/github.com/terraform-docs/terraform-docs) [![Codecov Report](https://codecov.io/gh/terraform-docs/terraform-docs/branch/master/graph/badge.svg)](https://codecov.io/gh/terraform-docs/terraform-docs) [![License](https://img.shields.io/github/license/terraform-docs/terraform-docs)](https://github.com/terraform-docs/terraform-docs/blob/master/LICENSE) [![Latest release](https://img.shields.io/github/v/release/terraform-docs/terraform-docs)](https://github.com/terraform-docs/terraform-docs/releases)
 
-This repository solves these problems by treating infrastructure as code. Every resource is defined in version-controlled configuration files, deployed automatically, and tracked through GitHub. This means we can spin up new environments in minutes, enforce organizational standards, and maintain a complete audit trail of every infrastructure change.
+![terraform-docs-teaser](./images/terraform-docs-teaser.png)
 
-## What This Repository Manages
+## What is terraform-docs
 
-This is the single source of truth for our Microsoft Fabric infrastructure:
+A utility to generate documentation from Terraform modules in various output formats.
 
-- **Azure Resource Groups** - Organizational containers for Fabric resources
-- **Fabric Capacities** - The compute resources that power workspaces (F2, F4, F8, etc.)
-- **Fabric Workspaces** - Analytics environments where teams build solutions
-- **Git Integration** - Version control connections for workspace items (notebooks, pipelines, reports)
+## Installation
 
-## The Technology Stack
+macOS users can install using [Homebrew]:
 
-### Terraform
-
-Terraform is our infrastructure automation tool. It reads our configuration files, compares them to what exists in Azure, and makes the necessary changes to bring infrastructure into the desired state. Think of it as declarative infrastructure - we describe what we want, and Terraform figures out how to make it happen.
-
-### GitHub
-
-All infrastructure code lives in GitHub. This gives us version control, change tracking, code review workflows, and integration with CI/CD pipelines. Every change goes through a pull request with appropriate reviews before being applied to production.
-
-### Git Submodules
-
-We use Git submodules to organize reusable Terraform modules. Each module (resource groups, capacities, workspaces) lives in its own repository and can be versioned independently. This allows us to share common infrastructure patterns across teams and projects while maintaining clear ownership and release cycles.
-
-The submodule approach means:
-- Changes to modules are isolated and versioned
-- Multiple projects can reference the same module code
-- Module updates are explicit and controlled via submodule version pinning
-- Teams can contribute improvements back to shared modules
-
-## How It Works
-
-### Infrastructure as Code Principles
-
-Instead of clicking through Azure portals, we define infrastructure in `.tf` files using Terraform's declarative syntax. These files describe the desired end state, and Terraform handles the actual API calls to Azure and Fabric. This approach provides:
-
-- **Repeatability** - Deploy identical environments every time
-- **Version Control** - Track who changed what and when
-- **Code Review** - Infrastructure changes go through the same review process as application code
-- **Automation** - CI/CD pipelines can deploy infrastructure automatically
-- **Documentation** - The code itself documents how infrastructure is configured
-
-### Module Architecture
-
-We've organized our code into reusable modules that act as templates:
-
-**Resource Group Module** - Standard Azure resource groups with naming conventions and tagging
-**Fabric Capacity Module** - Fabric compute resources with SKU sizing and ownership configuration  
-**Fabric Workspace Module** - Workspace creation with capacity assignment, RBAC, and optional Git integration
-
-These modules are referenced via Git submodules, allowing us to version and share them across different infrastructure repositories.
-
-### VCS Integration for Workspaces
-
-When we provision a Fabric workspace through this repository, we can optionally connect it to a GitHub repository. This links the workspace to version control so that workspace items (notebooks, semantic models, data pipelines) are automatically backed up and versioned in Git. Teams can then use standard Git workflows - branches, pull requests, merges - to manage changes to their analytics artifacts.
-
-## Repository Structure
-
-```
-nr-dap-fabric-ci/build
-├── artifacts                        # resources are created and managed
-├── modules/azure                    # Git submodules for reusable 
-│   ├── resource-group/              # Submodule for RG provisioning
-│   ├── fabric_rm_capacity/          # Submodule for capacity management
-│   └── fabric_workspace/            # Submodule for workspace creation
-└── README.md
+```bash
+brew install terraform-docs
 ```
 
-## Workflow
+or
 
-### Making Infrastructure Changes
+```bash
+brew install terraform-docs/tap/terraform-docs
+```
 
-1. **Branch** - Create a feature branch from main
-2. **Modify** - Update Terraform configurations or module references
-3. **Plan** - Run `terraform plan` to preview changes
-4. **Review** - Open a pull request for team review
-5. **Apply** - Merge triggers automated deployment via CI/CD
+Windows users can install using [Scoop]:
 
-### Provisioning New Resources
+```bash
+scoop bucket add terraform-docs https://github.com/terraform-docs/scoop-bucket
+scoop install terraform-docs
+```
 
-To create a new Fabric workspace, you add a module reference to the appropriate environment configuration:
+or [Chocolatey]:
 
-```hcl
-module "analytics_workspace" {
-  source = "./modules/fabric-workspace"
-  
-  workspace_name = "team-analytics-workspace"
-  capacity_id    = module.fabric_capacity.id
-  owners         = ["team@company.com"]
-  
-  enable_git_integration = true
-  git_repository         = "analytics-artifacts"
+```bash
+choco install terraform-docs
+```
+
+Stable binaries are also available on the [releases] page. To install, download the
+binary for your platform from "Assets" and place this into your `$PATH`:
+
+```bash
+curl -Lo ./terraform-docs.tar.gz https://github.com/terraform-docs/terraform-docs/releases/download/v0.17.0/terraform-docs-v0.17.0-$(uname)-amd64.tar.gz
+tar -xzf terraform-docs.tar.gz
+chmod +x terraform-docs
+mv terraform-docs /usr/local/bin/terraform-docs
+```
+
+**NOTE:** Windows releases are in `ZIP` format.
+
+The latest version can be installed using `go install` or `go get`:
+
+```bash
+# go1.17+
+go install github.com/terraform-docs/terraform-docs@v0.17.0
+```
+
+```bash
+# go1.16
+GO111MODULE="on" go get github.com/terraform-docs/terraform-docs@v0.17.0
+```
+
+**NOTE:** please use the latest Go to do this, minimum `go1.16` is required.
+
+This will put `terraform-docs` in `$(go env GOPATH)/bin`. If you encounter the error
+`terraform-docs: command not found` after installation then you may need to either add
+that directory to your `$PATH` as shown [here] or do a manual installation by cloning
+the repo and run `make build` from the repository which will put `terraform-docs` in:
+
+```bash
+$(go env GOPATH)/src/github.com/terraform-docs/terraform-docs/bin/$(uname | tr '[:upper:]' '[:lower:]')-amd64/terraform-docs
+```
+
+## Usage
+
+### Running the binary directly
+
+To run and generate documentation into README within a directory:
+
+```bash
+terraform-docs markdown table --output-file README.md --output-mode inject /path/to/module
+```
+
+Check [`output`] configuration for more details and examples.
+
+### Using docker
+
+terraform-docs can be run as a container by mounting a directory with `.tf`
+files in it and run the following command:
+
+```bash
+docker run --rm --volume "$(pwd):/terraform-docs" -u $(id -u) quay.io/terraform-docs/terraform-docs:0.17.0 markdown /terraform-docs
+```
+
+If `output.file` is not enabled for this module, generated output can be redirected
+back to a file:
+
+```bash
+docker run --rm --volume "$(pwd):/terraform-docs" -u $(id -u) quay.io/terraform-docs/terraform-docs:0.17.0 markdown /terraform-docs > doc.md
+```
+
+**NOTE:** Docker tag `latest` refers to _latest_ stable released version and `edge`
+refers to HEAD of `master` at any given point in time.
+
+### Using GitHub Actions
+
+To use terraform-docs GitHub Action, configure a YAML workflow file (e.g.
+`.github/workflows/documentation.yml`) with the following:
+
+```yaml
+name: Generate terraform docs
+on:
+  - pull_request
+
+jobs:
+  docs:
+    runs-on: ubuntu-latest
+    steps:
+    - uses: actions/checkout@v3
+      with:
+        ref: ${{ github.event.pull_request.head.ref }}
+
+    - name: Render terraform docs and push changes back to PR
+      uses: terraform-docs/gh-actions@main
+      with:
+        working-dir: .
+        output-file: README.md
+        output-method: inject
+        git-push: "true"
+```
+
+Read more about [terraform-docs GitHub Action] and its configuration and
+examples.
+
+### pre-commit hook
+
+With pre-commit, you can ensure your Terraform module documentation is kept
+up-to-date each time you make a commit.
+
+First [install pre-commit] and then create or update a `.pre-commit-config.yaml`
+in the root of your Git repo with at least the following content:
+
+```yaml
+repos:
+  - repo: https://github.com/terraform-docs/terraform-docs
+    rev: "v0.17.0"
+    hooks:
+      - id: terraform-docs-go
+        args: ["markdown", "table", "--output-file", "README.md", "./mymodule/path"]
+```
+
+Then run:
+
+```bash
+pre-commit install
+pre-commit install-hooks
+```
+
+Further changes to your module's `.tf` files will cause an update to documentation
+when you make a commit.
+
+## Configuration
+
+terraform-docs can be configured with a yaml file. The default name of this file is
+`.terraform-docs.yml` and the path order for locating it is:
+
+1. root of module directory
+1. `.config/` folder at root of module directory
+1. current directory
+1. `.config/` folder at current directory
+1. `$HOME/.tfdocs.d/`
+
+```yaml
+formatter: "" # this is required
+
+version: ""
+
+header-from: main.tf
+footer-from: ""
+
+recursive:
+  enabled: false
+  path: modules
+
+sections:
+  hide: []
+  show: []
+
+content: ""
+
+output:
+  file: ""
+  mode: inject
+  template: |-
+    <!-- BEGIN_TF_DOCS -->
+    {{ .Content }}
+    <!-- END_TF_DOCS -->
+
+output-values:
+  enabled: false
+  from: ""
+
+sort:
+  enabled: true
+  by: name
+
+settings:
+  anchor: true
+  color: true
+  default: true
+  description: false
+  escape: true
+  hide-empty: false
+  html: true
+  indent: 2
+  lockfile: true
+  read-comments: true
+  required: true
+  sensitive: true
+  type: true
+```
+
+## Content Template
+
+Generated content can be customized further away with `content` in configuration.
+If the `content` is empty the default order of sections is used.
+
+Compatible formatters for customized content are `asciidoc` and `markdown`. `content`
+will be ignored for other formatters.
+
+`content` is a Go template with following additional variables:
+
+- `{{ .Header }}`
+- `{{ .Footer }}`
+- `{{ .Inputs }}`
+- `{{ .Modules }}`
+- `{{ .Outputs }}`
+- `{{ .Providers }}`
+- `{{ .Requirements }}`
+- `{{ .Resources }}`
+
+and following functions:
+
+- `{{ include "relative/path/to/file" }}`
+
+These variables are the generated output of individual sections in the selected
+formatter. For example `{{ .Inputs }}` is Markdown Table representation of _inputs_
+when formatter is set to `markdown table`.
+
+Note that sections visibility (i.e. `sections.show` and `sections.hide`) takes
+precedence over the `content`.
+
+Additionally there's also one extra special variable avaialble to the `content`:
+
+- `{{ .Module }}`
+
+As opposed to the other variables mentioned above, which are generated sections
+based on a selected formatter, the `{{ .Module }}` variable is just a `struct`
+representing a [Terraform module].
+
+````yaml
+content: |-
+  Any arbitrary text can be placed anywhere in the content
+
+  {{ .Header }}
+
+  and even in between sections
+
+  {{ .Providers }}
+
+  and they don't even need to be in the default order
+
+  {{ .Outputs }}
+
+  include any relative files
+
+  {{ include "relative/path/to/file" }}
+
+  {{ .Inputs }}
+
+  # Examples
+
+  ```hcl
+  {{ include "examples/foo/main.tf" }}
+  ```
+
+  ## Resources
+
+  {{ range .Module.Resources }}
+  - {{ .GetMode }}.{{ .Spec }} ({{ .Position.Filename }}#{{ .Position.Line }})
+  {{- end }}
+````
+
+## Build on top of terraform-docs
+
+terraform-docs primary use-case is to be utilized as a standalone binary, but
+some parts of it is also available publicly and can be imported in your project
+as a library.
+
+```go
+import (
+    "github.com/terraform-docs/terraform-docs/format"
+    "github.com/terraform-docs/terraform-docs/print"
+    "github.com/terraform-docs/terraform-docs/terraform"
+)
+
+// buildTerraformDocs for module root `path` and provided content `tmpl`.
+func buildTerraformDocs(path string, tmpl string) (string, error) {
+    config := print.DefaultConfig()
+    config.ModuleRoot = path // module root path (can be relative or absolute)
+
+    module, err := terraform.LoadWithOptions(config)
+    if err != nil {
+        return "", err
+    }
+
+    // Generate in Markdown Table format
+    formatter := format.NewMarkdownTable(config)
+
+    if err := formatter.Generate(module); err != nil {
+        return "", err
+    }
+
+    // // Note: if you don't intend to provide additional template for the generated
+    // // content, or the target format doesn't provide templating (e.g. json, yaml,
+    // // xml, or toml) you can use `Content()` function instead of `Render()`.
+    // // `Content()` returns all the sections combined with predefined order.
+    // return formatter.Content(), nil
+
+    return formatter.Render(tmpl)
 }
 ```
 
-Terraform handles the actual provisioning, role assignments, and Git integration setup.
+## Plugin
 
-## Key Benefits
+Generated output can be heavily customized with [`content`], but if using that
+is not enough for your use-case, you can write your own plugin.
 
-**Consistency** - Every workspace is configured the same way, following organizational standards for naming, tagging, and permissions.
+In order to install a plugin the following steps are needed:
 
-**Speed** - Provisioning a new workspace with full Git integration takes minutes instead of hours of manual clicking.
+- download the plugin and place it in `~/.tfdocs.d/plugins` (or `./.tfdocs.d/plugins`)
+- make sure the plugin file name is `tfdocs-format-<NAME>`
+- modify [`formatter`] of `.terraform-docs.yml` file to be `<NAME>`
 
-**Auditability** - Every infrastructure change is tracked in Git with author, timestamp, and reason.
+**Important notes:**
 
-**Reliability** - Infrastructure is tested in dev/test before reaching production, and can be rolled back via Git if issues arise.
+- if the plugin file name is different than the example above, terraform-docs won't
+be able to to pick it up nor register it properly
+- you can only use plugin thorough `.terraform-docs.yml` file and it cannot be used
+with CLI arguments
 
-**Reusability** - Modules are shared across teams via Git submodules, so improvements benefit everyone.
+To create a new plugin create a new repository called `tfdocs-format-<NAME>` with
+following `main.go`:
 
-**Collaboration** - Infrastructure changes go through code review, bringing more eyes to potential issues.
+```go
+package main
 
-## Getting Started
+import (
+    _ "embed" //nolint
 
-To work with this repository:
+    "github.com/terraform-docs/terraform-docs/plugin"
+    "github.com/terraform-docs/terraform-docs/print"
+    "github.com/terraform-docs/terraform-docs/template"
+    "github.com/terraform-docs/terraform-docs/terraform"
+)
 
-1. Clone the repo with submodules: `git clone --recursive <repo-url>`
-2. Initialize Terraform: `terraform init`
-3. Select an environment: `terraform workspace select dev`
-4. Make changes to configuration files
-5. Preview changes: `terraform plan`
-6. Apply changes: `git commit -am 'add the reason for change' 'git push'`
+func main() {
+    plugin.Serve(&plugin.ServeOpts{
+        Name:    "<NAME>",
+        Version: "0.1.0",
+        Printer: printerFunc,
+    })
+}
 
-For detailed module usage and configuration options, see the README in each module's subdirectory.
+//go:embed sections.tmpl
+var tplCustom []byte
 
-## Contributing
+// printerFunc the function being executed by the plugin client.
+func printerFunc(config *print.Config, module *terraform.Module) (string, error) {
+    tpl := template.New(config,
+        &template.Item{Name: "custom", Text: string(tplCustom)},
+    )
 
-Infrastructure changes should follow the standard development workflow - branch, modify, review, merge. All changes require at least one approval from a platform engineering team member. Refer to individual module documentation for specific configuration parameters and best practices.
+    rendered, err := tpl.Render("custom", module)
+    if err != nil {
+        return "", err
+    }
+
+    return rendered, nil
+}
+```
+
+Please refer to [tfdocs-format-template] for more details. You can create a new
+repository from it by clicking on `Use this template` button.
+
+## Documentation
+
+- **Users**
+  - Read the [User Guide] to learn how to use terraform-docs
+  - Read the [Formats Guide] to learn about different output formats of terraform-docs
+  - Refer to [Config File Reference] for all the available configuration options
+- **Developers**
+  - Read [Contributing Guide] before submitting a pull request
+
+Visit [our website] for all documentation.
+
+## Community
+
+- Discuss terraform-docs on [Slack]
+
+## License
+
+MIT License - Copyright (c) 2021 The terraform-docs Authors.
+
+[Chocolatey]: https://www.chocolatey.org
+[Config File Reference]: https://terraform-docs.io/user-guide/configuration/
+[`content`]: https://terraform-docs.io/user-guide/configuration/content/
+[Contributing Guide]: CONTRIBUTING.md
+[Formats Guide]: https://terraform-docs.io/reference/terraform-docs/
+[`formatter`]: https://terraform-docs.io/user-guide/configuration/formatter/
+[here]: https://golang.org/doc/code.html#GOPATH
+[Homebrew]: https://brew.sh
+[install pre-commit]: https://pre-commit.com/#install
+[`output`]: https://terraform-docs.io/user-guide/configuration/output/
+[releases]: https://github.com/terraform-docs/terraform-docs/releases
+[Scoop]: https://scoop.sh/
+[Slack]: https://slack.terraform-docs.io/
+[terraform-docs GitHub Action]: https://github.com/terraform-docs/gh-actions
+[Terraform module]: https://pkg.go.dev/github.com/terraform-docs/terraform-docs/terraform#Module
+[tfdocs-format-template]: https://github.com/terraform-docs/tfdocs-format-template
+[our website]: https://terraform-docs.io/
+[User Guide]: https://terraform-docs.io/user-guide/introduction/
